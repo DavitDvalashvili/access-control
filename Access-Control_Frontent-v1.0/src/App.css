@@ -1,0 +1,146 @@
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+*,
+::before,
+::after {
+  user-select: none;
+}
+
+/* Firefox */
+input {
+  box-shadow: none !important;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+.bpg-arial {
+  font-family: "BPG Arial Caps", sans-serif;
+  font-weight: bold;
+}
+.bpg-arial-normal {
+  font-family: "BPG Arial Caps", sans-serif;
+}
+.bpg-arial2 {
+  font-family: "BPG Arial", sans-serif;
+  font-weight: bold;
+}
+.bpg-arial2-normal {
+  font-family: "BPG Arial", sans-serif;
+}
+
+.overflow-v {
+  overflow-y: auto !important;
+}
+.overflow-v::-webkit-scrollbar {
+  width: 5px;
+}
+.overflow-v::-webkit-scrollbar-thumb {
+  background-color: #aaa;
+  border-radius: 50px;
+}
+
+.overflow-h {
+  overflow-x: auto !important;
+}
+.overflow-h::-webkit-scrollbar {
+  height: 5px;
+}
+.overflow-h::-webkit-scrollbar-thumb {
+  background-color: #aaa;
+  border-radius: 50px;
+}
+
+.block {
+  width: 85%;
+  height: 90px;
+  background-color: red !important;
+}
+
+.login_page {
+  width: 100vw;
+}
+
+.bg-lightorange {
+  background-color: #fff237;
+}
+
+.dropdown-menu {
+  --bs-dropdown-min-width: 3rem !important;
+  color: #2289c5;
+}
+
+/* BOOTSTRAP */
+#acc-header button {
+  box-shadow: none;
+}
+#acc-header button:focus {
+  background-color: #fff;
+}
+
+.report_comment button {
+  display: none;
+}
+
+.report_comment:hover button {
+  display: block;
+}
+
+.accordion-button {
+  box-shadow: none !important;
+}
+.accordion-button:not(.collapsed) {
+  background-color: white;
+}
+
+.page-link {
+  box-shadow: none !important;
+}
+
+.custom-pagination.active > .page-link {
+  background-color: var(--bs-secondary-bg-subtle);
+  border-color: var(--bs-secondary-bg-subtle);
+}
+
+.progress-bar {
+  width: 80%;
+  /* height: 90%; */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(180deg);
+  border-radius: 50%;
+}
+
+table {
+  border: 1px solid black !important;
+}
+
+tr,
+th {
+  border-collapse: collapse !important;
+  border: 1px solid black !important;
+}
+
+td {
+  border: 1px solid black;
+}
+
+.text-small {
+  font-size: 14px;
+}
+
+.small_size {
+  width: 3%;
+}
+
+.background-table {
+  background-color: #7393b3;
+}
+
+.lighter-secondary {
+  background-color: #f1f1f1;
+  color: #000;
+}
