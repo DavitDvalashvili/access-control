@@ -8,8 +8,8 @@ import { useStore } from "../App";
 const Report = () => {
   let [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [months, setMonths] = useState([]);
-  const [range, setRange] = useState(1);
+  const [months, setMonths] = useState(getMonths());
+  const [range, setRange] = useState(2);
   const [structureUnits, setStructureUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState({
     StructureUnitID: null,
@@ -21,7 +21,6 @@ const Report = () => {
     startDate: "",
     endDate: "",
   });
-  const url = process.env.REACT_APP_HTTP;
   const { HTTP } = useStore();
 
   const getReportData = async () => {
@@ -30,7 +29,7 @@ const Report = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${url}/report/?StructureUnitID=${selectedUnit.StructureUnitID}&StructureUnitName=${selectedUnit.StructureUnitName}&startDate=${selectedMonth.startDate}&endDate=${selectedMonth.endDate}`
+        `${HTTP}/report/?StructureUnitID=${selectedUnit.StructureUnitID}&StructureUnitName=${selectedUnit.StructureUnitName}&startDate=${selectedMonth.startDate}&endDate=${selectedMonth.endDate}`
       );
 
       if (res.status === 200) {
@@ -53,27 +52,12 @@ const Report = () => {
     range === 1 ? 10 : range === 2 ? 20 : range === 3 ? 30 : 31
   );
 
-  console.log(reportData);
-
   const getStructureUnit = async () => {
     await axios
       .get(`${HTTP}/getStructureUnit`)
       .then((res) => {
         if (res.status == 200) {
           setStructureUnits(res.data);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
-  const getMonth = async () => {
-    await axios
-      .get(`${HTTP}/getMonths`)
-      .then((res) => {
-        if (res.status == 200) {
-          setMonths(res.data);
         }
       })
       .catch((error) => {
@@ -102,11 +86,8 @@ const Report = () => {
     });
   };
 
-  console.log(selectedUnit);
-
   useEffect(() => {
     getStructureUnit();
-    getMonth();
   }, []);
 
   return (
@@ -212,16 +193,22 @@ const Report = () => {
                 <td colSpan={3} className="text-center py-1">
                   შედგენის თარიღი
                 </td>
-                <td colSpan={16} className="text-left  text-small py-1 pl-1">
-                  01/02/2024
+                <td
+                  colSpan={16}
+                  className="text-left  text-small px-1 py-1 pl-1"
+                >
+                  {new Date().toISOString().split("T")[0]}
                 </td>
               </tr>
               <tr className=" background-table fw-bold text-white ">
                 <td colSpan={3} className="text-center py-1">
                   საანგარიშო პერიოდი
                 </td>
-                <td colSpan={16} className="text-left  text-small py-1 pl-1">
-                  {`${reportData.StartDate}-${reportData.EndDate}`}
+                <td
+                  colSpan={16}
+                  className="text-left  text-small px-1 py-1 pl-1"
+                >
+                  {`${reportData.StartDate} / ${reportData.EndDate}`}
                 </td>
               </tr>
               <tr className="text-center background-table text-white">
@@ -286,59 +273,86 @@ const Report = () => {
                 </td>
                 <td className="text-small">სხვა (საჭიროების შემთხვევაში)</td>
               </tr>
-              {reportData.Holders.map((holder, index) => {
-                let dayRange = holder.WorkingInformation.FullDays?.slice(
-                  range === 1 ? 0 : range === 2 ? 10 : range === 3 ? 20 : 30,
-                  range === 1 ? 10 : range === 2 ? 20 : range === 3 ? 30 : 31
-                );
-
-                return (
-                  <tr key={index} className="text-center   ">
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.FullName}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.PersonalNumber}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.Position}
-                    </td>
-                    {dayRange?.map((day, index) => (
-                      <td
-                        key={index}
-                        className="text-small small_size lighter-secondary py-1"
-                      >
-                        {day.WorkingHours}
+              {reportData.Holders &&
+                reportData.Holders.map((holder, index) => {
+                  let dayRange = holder.WorkingInformation.FullDays
+                    ? holder.WorkingInformation.FullDays?.slice(
+                        range === 1
+                          ? 0
+                          : range === 2
+                          ? 10
+                          : range === 3
+                          ? 20
+                          : 30,
+                        range === 1
+                          ? 10
+                          : range === 2
+                          ? 20
+                          : range === 3
+                          ? 30
+                          : 31
+                      )
+                    : [[], []];
+                  return (
+                    <tr key={index} className="text-center   ">
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.FullName}
                       </td>
-                    ))}
-                    {[...Array(Math.abs(10 - dayRange?.length))].map(
-                      (_, index) =>
-                        dayRange?.length !== 10 ? (
-                          <td
-                            key={index}
-                            className="text-small small_size lighter-secondary py-1"
-                          ></td>
-                        ) : null
-                    )}
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.WorkingInformation.WorkingDaysSUM}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.WorkingInformation.WorkingHoursSum}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.WorkingInformation.OverTime}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1"></td>
-                    <td className="text-small small_size lighter-secondary py-1">
-                      {holder.WorkingInformation.WorkInHolidaysHours}
-                    </td>
-                    <td className="text-small small_size lighter-secondary py-1"></td>
-                  </tr>
-                );
-              })}
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.PersonalNumber}
+                      </td>
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.Position}
+                      </td>
+                      {dayRange?.map((day, index) => (
+                        <td
+                          key={index}
+                          className="text-small small_size lighter-secondary py-1"
+                        >
+                          {day.WorkingHours}
+                        </td>
+                      ))}
+                      {[...Array(Math.abs(10 - dayRange?.length))].map(
+                        (_, index) =>
+                          dayRange?.length !== 10 ? (
+                            <td
+                              key={index}
+                              className="text-small small_size lighter-secondary py-1"
+                            ></td>
+                          ) : null
+                      )}
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.WorkingInformation.WorkingDaysSUM}
+                      </td>
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.WorkingInformation.WorkingHoursSum
+                          ? holder.WorkingInformation.WorkingHoursSum.toFixed(2)
+                          : ""}
+                      </td>
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.WorkingInformation.OverTime
+                          ? holder.WorkingInformation.OverTime.toFixed(2)
+                          : ""}
+                      </td>
+                      <td className="text-small small_size lighter-secondary py-1"></td>
+                      <td className="text-small small_size lighter-secondary py-1">
+                        {holder.WorkingInformation.WorkInHolidaysHours
+                          ? holder.WorkingInformation.WorkInHolidaysHours.toFixed(
+                              2
+                            )
+                          : ""}
+                      </td>
+                      <td className="text-small small_size lighter-secondary py-1"></td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
+          {!reportData.Holders && (
+            <Col className="text-center mt-2 ">
+              სტრუქტურულ ერთეულში თანამშრომლები არ არის რეგისტრირებული
+            </Col>
+          )}
           <table className="my-5">
             <tbody className="text-small">
               <tr>
@@ -384,3 +398,35 @@ const Report = () => {
 };
 
 export default Report;
+
+const getMonths = () => {
+  const months = [
+    "იანვარი",
+    "თებერვალი",
+    "მარტი",
+    "აპრილი",
+    "მაისი",
+    "ივნისი",
+    "ივლისი",
+    "აგვისტო",
+    "სექტემბერი",
+    "ოქტომბერი",
+    "ნოემბერი",
+    "დეკემბერი",
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const daysInMonth = (month, year) => new Date(year, month, 0).getDate();
+
+  return months.map((monthName, index) => {
+    const monthID = index + 1;
+    const startDate = `${currentYear}-${monthID
+      .toString()
+      .padStart(2, "0")}-01`;
+    const endDate = `${currentYear}-${monthID
+      .toString()
+      .padStart(2, "0")}-${daysInMonth(monthID, currentYear)}`;
+
+    return { monthID, monthName, startDate, endDate };
+  });
+};

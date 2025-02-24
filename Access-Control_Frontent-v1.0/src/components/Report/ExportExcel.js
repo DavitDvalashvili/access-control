@@ -121,7 +121,7 @@ const ExportExcel = ({ reportData }) => {
         "საანგარიშო პერიოდი",
         "",
         "",
-        `${reportData.StartDate.toString()} - ${reportData.EndDate.toString()}`,
+        `${reportData.StartDate.toString()} / ${reportData.EndDate.toString()}`,
         ...Array(36).fill(null),
       ],
       [...Array(39).fill(null)],
@@ -159,16 +159,16 @@ const ExportExcel = ({ reportData }) => {
     ];
 
     for (let holder of reportData.Holders) {
+      const fullDays = holder.WorkingInformation.FullDays || [];
+      console.log(reportData.Holders);
       const userRow = [
         holder.FullName,
         holder.PersonalNumber,
         holder.Position,
-        ...holder.WorkingInformation.FullDays.map(
-          (day) => `${day.WorkingHours} `
+        ...fullDays.map((day) =>
+          day?.WorkingHours ? `${day.WorkingHours} ` : ""
         ),
-        [
-          ...Array(Math.abs(31 - holder.WorkingInformation.FullDays.length)),
-        ].map((_, index) => ""),
+        ...Array(31 - fullDays.length).fill(""),
         holder.WorkingInformation.WorkingDaysSUM,
         holder.WorkingInformation.WorkingHoursSum,
         holder.WorkingInformation.OverTime,

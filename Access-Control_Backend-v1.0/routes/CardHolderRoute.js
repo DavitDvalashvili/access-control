@@ -24,9 +24,10 @@ import {
   getPositions,
   addPosition,
   addStructureInit,
+  editStructureInit,
   editAbsenceDays,
+  deleteStructureInit,
   getPosition,
-  getMonths,
 } from "../controllers/CardHolderController.js";
 import { getDashboardStatistic } from "../controllers/CardHolderLOGController.js";
 const CardHolderRoute = express.Router();
@@ -63,7 +64,11 @@ CardHolderRoute.get("/getPositions", getPositions);
 CardHolderRoute.get("/getPosition/:HolderPositionID", getPosition);
 CardHolderRoute.post("/addPosition", addPosition);
 CardHolderRoute.post("/addStructureInit", addStructureInit);
+CardHolderRoute.post("/editStructureInit", editStructureInit);
+CardHolderRoute.delete(
+  "/deleteStructureInit/:StructureUnitID",
+  deleteStructureInit
+);
 CardHolderRoute.post("/editAbsenceDays/:AbsenceReasonId", editAbsenceDays);
-CardHolderRoute.get("/getMonths", getMonths);
 
 export default CardHolderRoute;

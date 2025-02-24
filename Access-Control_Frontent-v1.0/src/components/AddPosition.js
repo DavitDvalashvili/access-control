@@ -8,6 +8,8 @@ import {
 } from "react-bootstrap";
 import { AiFillCloseSquare } from "react-icons/ai";
 import { useEffect, useState } from "react";
+import { FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 import axios from "axios";
 import { useStore } from "../App";
 
@@ -16,6 +18,8 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
   const [positions, setPositions] = useState([]);
   const [filteredPosition, setFilterPositions] = useState([]);
   const [hidePositionDropDown, setHidePositionDropDown] = useState(false);
+  const [showStructureUnits, setShowStructureUnits] = useState(false);
+  const [updateMode, setUpdateMode] = useState(false);
   const [structureUnit, setStructureUnit] = useState({
     StructureUnitName: "",
     StructureUnitID: "",
@@ -41,10 +45,6 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
         console.log(error);
       });
   };
-
-  useEffect(() => {
-    console.log(structureUnits);
-  }, [structureUnits]);
 
   const getPositions = async () => {
     await axios
@@ -106,6 +106,52 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
       });
   };
 
+  const editStructureUnit = async () => {
+    await axios
+      .post(`${HTTP}/editStructureInit`, structureUnit)
+      .then((res) => {
+        setStructureUnits([
+          ...structureUnits.filter(
+            (Unit) => Unit.StructureUnitID !== structureUnit.StructureUnitID
+          ),
+          {
+            ...structureUnit,
+            StructureUnitID: structureUnit.StructureUnitID,
+          },
+        ]);
+
+        setStructureUnit({
+          StructureUnitName: "",
+          StructureUnitID: "",
+        });
+        setUpdateMode(false);
+        setShowStructureInput(!structureUnit);
+        setMessage(res.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  const deleteStructureUnit = async (StructureUnitID) => {
+    await axios
+      .delete(`${HTTP}/deleteStructureInit/${StructureUnitID}`)
+      .then((res) => {
+        if (res.data.status == "success") {
+          setStructureUnits([
+            ...structureUnits.filter(
+              (Unit) => Unit.StructureUnitID !== StructureUnitID
+            ),
+          ]);
+        }
+        console.log(StructureUnitID);
+        setMessage(res.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
   const handleSelectUnit = (eventKey) => {
     setPositionData({
       ...positionData,
@@ -158,10 +204,6 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
   useEffect(() => {
     getPosition();
   }, [cardHolder]);
-
-  useEffect(() => {
-    console.log(structureUnit);
-  }, [structureUnit]);
 
   return (
     <Accordion className="my-3">
@@ -281,6 +323,11 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
                 size="sm"
                 onClick={() => {
                   setShowStructureInput(!showStructureInput);
+                  setUpdateMode(false);
+                  setStructureUnit({
+                    StructureUnitName: "",
+                    StructureUnitID: "",
+                  });
                 }}
               >
                 + სტრუქტურული ერთეულის დამატება
@@ -295,23 +342,37 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
                     value={structureUnit.StructureUnitName}
                     onChange={(e) => {
                       setStructureUnit({
-                        StructureUnitID: "",
+                        ...structureUnit,
                         StructureUnitName: e.target.value,
                       });
                     }}
                   />
                 </InputGroup>
-                <Button
-                  variant="primary"
-                  className="rounded-1 w-100"
-                  onClick={() => {
-                    if (structureUnit.StructureUnitName) {
-                      addStructureUnit();
-                    }
-                  }}
-                >
-                  სტრუქტურული ერთეული დამატება
-                </Button>
+                {!updateMode ? (
+                  <Button
+                    variant="primary"
+                    className="rounded-1 w-100"
+                    onClick={() => {
+                      if (structureUnit.StructureUnitName) {
+                        addStructureUnit();
+                      }
+                    }}
+                  >
+                    დამატება
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    className="rounded-1 w-100"
+                    onClick={() => {
+                      if (structureUnit.StructureUnitName) {
+                        editStructureUnit();
+                      }
+                    }}
+                  >
+                    რედაქტირება
+                  </Button>
+                )}
                 <AiFillCloseSquare
                   className="text-danger w-20px "
                   style={{ cursor: "pointer", height: "40px", width: "40px" }}
@@ -321,6 +382,48 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
                 />
               </Col>
             )}
+            <Col>
+              <Button
+                variant="primary"
+                className="mt-2 col-12"
+                size="sm"
+                onClick={() => {
+                  setShowStructureUnits(!showStructureUnits);
+                }}
+              >
+                სტრუქტურული ერთეულები
+              </Button>
+              {showStructureUnits && (
+                <Col className="mt-2">
+                  {structureUnits.map((unit) => (
+                    <Col
+                      key={unit.StructureUnitID}
+                      className="d-flex justify-content-start gap-2 align-items-center"
+                    >
+                      <MdDelete
+                        className="text-danger "
+                        onClick={() =>
+                          deleteStructureUnit(unit.StructureUnitID)
+                        }
+                        style={{ cursor: "pointer" }}
+                      />
+                      <FaEdit
+                        className="text-success"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                          setUpdateMode(true);
+                          setShowStructureInput(true);
+                          setStructureUnit({
+                            ...unit,
+                          });
+                        }}
+                      />
+                      <span>{unit.StructureUnitName}</span>
+                    </Col>
+                  ))}
+                </Col>
+              )}
+            </Col>
           </Col>
         </Accordion.Body>
       </Accordion.Item>

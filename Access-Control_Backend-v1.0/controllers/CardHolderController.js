@@ -1070,23 +1070,91 @@ export const addStructureInit = async (req, res) => {
   }
 };
 
-export const getMonths = async (req, res) => {
+export const editStructureInit = async (req, res) => {
   let conn;
+
+  const { StructureUnitName, StructureUnitID } = req.body;
 
   try {
     conn = await createConnection();
 
-    const months = await conn.query(
-      `SELECT month_id AS monthID, 
-       month_name AS monthName, 
-       DATE_FORMAT(start_date, '%Y-%m-%d') AS startDate, 
-       DATE_FORMAT(end_date, '%Y-%m-%d') AS endDate 
-       FROM ostiumconfigdb.months;`
+    const [existingUnit] = await conn.query(
+      `SELECT * FROM structureunit WHERE StructureUnitName = ?;`,
+      [StructureUnitName]
     );
 
-    res.send(months);
+    if (existingUnit) {
+      res.send({
+        status: "error",
+        message: "სტრუქტურული ერთეული უკვე არსებობს",
+      });
+    } else {
+      await conn.query(
+        `UPDATE ostiumconfigdb.structureunit 
+         SET StructureUnitName = ? 
+         WHERE StructureUnitID = ?`,
+        [StructureUnitName, StructureUnitID]
+      );
+
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით განახლდა",
+      });
+    }
   } catch (err) {
     console.log(err);
+    res.send({
+      status: "error",
+      message: "ინფორმაცია ვერ განახლდა",
+    });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const deleteStructureInit = async (req, res) => {
+  let conn;
+  const { StructureUnitID } = req.params;
+
+  try {
+    conn = await createConnection();
+
+    let existing = await conn.query(
+      `SELECT * FROM ostiumconfigdb.holderposition WHERE StructureUnitID = ?`,
+      [StructureUnitID]
+    );
+
+    if (existing.length > 0) {
+      res.send({
+        status: "error",
+        message: "ინფორმაცია ვერ წაიშალა",
+      });
+    } else {
+      const result = await conn.query(
+        `DELETE FROM ostiumconfigdb.structureunit
+         WHERE StructureUnitID = ?`,
+        [StructureUnitID]
+      );
+
+      //Check if any rows were affected
+      if (result.affectedRows > 0) {
+        res.send({
+          status: "success",
+          message: "ინფორმაცია წარმატებით წაიშალა",
+        });
+      } else {
+        res.send({
+          status: "error",
+          message: "ინფორმაცია ვერ წაიშალა",
+        });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      status: "error",
+      message: "დაფიქსირდა შეცდომა სერვერზე",
+    });
   } finally {
     if (conn) conn.end();
   }
