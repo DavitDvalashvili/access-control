@@ -656,12 +656,14 @@ export const getDashboardStatistic = async (req, res) => {
 export const getReport = async (req, res) => {
   let conn;
 
+  const { StructureUnitID, StructureUnitName, startDate, endDate } = req.query;
+
   try {
     conn = await createConnection();
 
     let query = `
     USE ostiumconfigdb;
-    SELECT usr.organisationName, usr.identificationNumber, 'ხელოვნები' AS StructureUnitName, '2025-01-01' AS StartDate, '2025-01-31' AS EndDate,
+    SELECT usr.organisationName, usr.identificationNumber, "${StructureUnitName}" AS StructureUnitName, "${startDate}" AS StartDate, "${endDate}" AS EndDate,
       (
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
@@ -719,7 +721,7 @@ export const getReport = async (req, res) => {
               
               FROM ostiumlogdb.worktime_accounting wta
               WHERE (c.CardUID = wta.card_uid) AND
-              (DATE_FORMAT(wta.start_date, '%Y-%m-%d') >= '2025-06-01' AND DATE_FORMAT(wta.start_date, '%Y-%m-%d') <= '2025-06-30')
+              (DATE_FORMAT(wta.start_date, '%Y-%m-%d') >= '${startDate}' AND DATE_FORMAT(wta.start_date, '%Y-%m-%d') <= '${endDate}')
             )
           )
         )
@@ -727,7 +729,7 @@ export const getReport = async (req, res) => {
         JOIN cardholders ch ON c.CardHolderID = ch.CardHolderID
         JOIN holderposition hp ON c.HolderPositionID = hp.HolderPositionID
         JOIN structureunit su ON hp.StructureUnitID = su.StructureUnitID
-        WHERE su.StructureUnitID = 2
+        WHERE su.StructureUnitID = ${StructureUnitID}
       ) AS Holders
     
     FROM users usr

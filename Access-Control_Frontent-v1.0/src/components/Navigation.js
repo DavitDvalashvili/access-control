@@ -82,10 +82,10 @@ const Navigation = () => {
                 მოვლენების მონიტორი
               </Nav.Link>
               <Nav.Link as={Link} to={"/reports"}>
-                რეპორტი
+                ანგარიში
               </Nav.Link>
-              <Nav.Link as={Link} to={"/testReport"}>
-                სატესტო რეპორტი
+              <Nav.Link as={Link} to={"/report"}>
+                რეპორტი
               </Nav.Link>
               <Nav.Link as={Link} to={"/currentevent"}>
                 დღევანდელი მოვლენები

@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(
   cors({
     methods: ["GET", "POST", "PUT", "DELETE"],
-    origin: ["http://172.20.10.12:3000"],
+    origin: ["http://192.168.112.146:3000"],
     credentials: true,
   })
 );

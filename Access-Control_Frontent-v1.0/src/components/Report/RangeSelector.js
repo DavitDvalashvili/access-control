@@ -1,6 +1,13 @@
 import { Dropdown } from "react-bootstrap";
 import { useState } from "react";
 
+let range = [
+  { key: 1, name: "დღეები 1-10" },
+  { key: 2, name: "დღეები 11-20" },
+  { key: 3, name: "დღეები 21-30" },
+  { key: 4, name: "დღეები 31" },
+];
+
 // eslint-disable-next-line react/prop-types
 const RangeSelector = ({ setRange }) => {
   const [selectedRange, setSelectedRange] = useState(1);
@@ -16,13 +23,16 @@ const RangeSelector = ({ setRange }) => {
       onSelect={handleSelect}
     >
       <Dropdown.Toggle variant="success" id="dropdown-basic">
-        აირჩიე დღეები
+        {range.filter((e) => e.key == selectedRange)[0].name
+          ? range.filter((e) => e.key == selectedRange)[0].name
+          : "აირჩიე დღეები"}
       </Dropdown.Toggle>
       <Dropdown.Menu>
-        <Dropdown.Item eventKey="1">დღეები 1-10</Dropdown.Item>
-        <Dropdown.Item eventKey="2">დღეები 11-20</Dropdown.Item>
-        <Dropdown.Item eventKey="3">დღეები 21-30</Dropdown.Item>
-        <Dropdown.Item eventKey="4">დღეები 31</Dropdown.Item>
+        {range.map((e) => (
+          <Dropdown.Item eventKey={e.key} key={e.key}>
+            {e.name}
+          </Dropdown.Item>
+        ))}
       </Dropdown.Menu>
     </Dropdown>
   );

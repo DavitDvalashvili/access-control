@@ -30,6 +30,7 @@ import JoinTimeZone from "./timezoneComponents/JoinTimeZone";
 import { useStore } from "../App";
 import { Link } from "react-router-dom";
 import { AddAbsenceDays } from "./AddAbsenceDays";
+import { AddPosition } from "./AddPosition";
 
 const EditCardHolder = () => {
   const url = process.env.REACT_APP_LOCAL_IP;
@@ -195,13 +196,9 @@ const EditCardHolder = () => {
     e.onerror = null;
   };
 
-  // useEffect(() => {
-  //     if (!holder?.Photo?.includes('base64')) {
-  //         getPhoto();
-  //     } else {
-  //         setPhoto(holder?.Photo);
-  //     }
-  // }, [holder, hasPhotoUploaded, holders]);
+  useEffect(() => {
+    console.log(holder);
+  }, [holder]);
 
   const updateHolder = async () => {
     if (holder) {
@@ -719,6 +716,13 @@ const EditCardHolder = () => {
                       </Accordion.Item>
                     </Accordion>
                   )}
+                  <Col>
+                    <AddPosition
+                      setMessage={setMessage}
+                      setCardHolder={setHolder}
+                      cardHolder={holder}
+                    />
+                  </Col>
                   <AddAbsenceDays holder={holder} setMessage={setMessage} />
                 </Col>
                 <Col className="d-flex gap-5 mb-4">

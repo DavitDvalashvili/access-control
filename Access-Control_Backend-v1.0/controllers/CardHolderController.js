@@ -48,7 +48,9 @@ export const registerCardHolder = async (req, res) => {
     CardUID,
     Activated,
     selectedTimezone,
+    HolderPositionID,
   } = req.body;
+  console.log(req.body);
 
   // console.log(u);
   try {
@@ -78,15 +80,17 @@ export const registerCardHolder = async (req, res) => {
       CardUID,
       cardDeactivation,
       Activated,
+      HolderPositionID,
     ];
 
     conn
       .query(
-        `SELECT RegisterCardHolder(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) status`,
+        `SELECT RegisterCardHolder(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) status`,
         [...holderData]
       )
       .then((resp) => {
         const registrationStatus = JSON.parse(resp[0]?.status);
+        console.log(resp);
 
         if (registrationStatus.status === "success") {
           const { card_id } = registrationStatus;
@@ -427,7 +431,7 @@ export const updateCardHolder = async (req, res) => {
           if (holderCard?.length === 0) {
             await conn.query(
               `
-                            INSERT INTO cards(CardUID, DeactivationDate, ActivationStatus, ActivationDate, CardHolderID) VALUES(?, ?, ?, ?, ?);
+                            INSERT INTO cards(CardUID, DeactivationDate, ActivationStatus, ActivationDate, CardHolderID, HolderPositionID) VALUES(?, ?, ?, ?, ?, ?);
                         `,
               [
                 u.CardUID,
@@ -435,15 +439,21 @@ export const updateCardHolder = async (req, res) => {
                 u.ActivationStatus ? 1 : 0,
                 currentDate,
                 u.CardHolderID,
+                u.HolderPositionID,
               ]
             );
           } else {
             await conn.query(
               `
-                        UPDATE cards SET CardUID = ?, DeactivationDate = ?, ActivationStatus = ?
+                        UPDATE cards SET CardUID = ?, DeactivationDate = ?, ActivationStatus = ?, HolderPositionID = ?
                         WHERE cards.CardHolderID = ${u.CardHolderID}
                     `,
-              [u.CardUID, deactivationDate, u.ActivationStatus]
+              [
+                u.CardUID,
+                deactivationDate,
+                u.ActivationStatus,
+                u.HolderPositionID,
+              ]
             );
           }
         });
@@ -489,7 +499,7 @@ export const getAbsenceReasons = async (req, res) => {
 export const addAbsenceDate = async (req, res) => {
   let conn;
 
-  const { absenceReasonId, startDate, endDate, cardUId } = req.body;
+  const { ConditionalNotationID, startDate, endDate, cardUId } = req.body;
 
   try {
     conn = await createConnection();
@@ -501,7 +511,7 @@ export const addAbsenceDate = async (req, res) => {
            (start_date <= ? AND end_date >= ?) 
            OR (start_date <= ? AND end_date >= ?) 
            OR (? <= start_date AND ? >= end_date)
-      )`;
+      ) `;
 
     const [existingDays] = await conn.query(query, [
       cardUId,
@@ -515,34 +525,39 @@ export const addAbsenceDate = async (req, res) => {
 
     if (existingDays.count > 0) {
       res.send({
-        message: "დასვენების დღეები უკვე დარეგისტრირებულია",
+        message: "დასვენების დღეები ამ თარიღში უკვე დარეგისტრირებულია",
         status: "error",
       });
       return;
     }
 
-    await conn
-      .query(
+    const today = new Date().setHours(0, 0, 0, 0);
+    const start = new Date(startDate).setHours(0, 0, 0, 0);
+    const end = new Date(endDate).setHours(0, 0, 0, 0);
+
+    if (start >= today && end >= today && start <= end) {
+      const result = await conn.query(
         `INSERT INTO ostiumconfigdb.absence_reason (card_uid, ConditionalNotationID, start_date, end_date) 
-      VALUES  (?, ?, ?, ?)`,
-        [cardUId, absenceReasonId, startDate, endDate]
-      )
-      .then((resp) => {
-        let status = {
-          status: "success",
-          message: "ინფორმაცია წარმატებით განახლდა",
-        };
-        res.send(status);
-      })
-      .catch((err) => {
-        console.log(err);
-        res.send({
-          message: "ინფორმაცია ვერ განახლდა",
-          status: "error",
-        });
+           VALUES (?, ?, ?, ?)`,
+        [cardUId, ConditionalNotationID, startDate, endDate]
+      );
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით განახლდა",
+        absenceReasonId: Number(result.insertId),
       });
+    } else {
+      res.send({
+        status: "error",
+        message: "ინფორმაცია ვერ განახლდა",
+      });
+    }
   } catch (err) {
     console.log(err);
+    res.send({
+      status: "error",
+      message: "ინფორმაცია ვერ განახლდა",
+    });
   } finally {
     if (conn) conn.end();
   }
@@ -558,16 +573,17 @@ export const getAbsenceDays = async (req, res) => {
 
     const AbsenceDays = await conn.query(
       `SELECT 
-    ar.ar_id AS arID,
+    ar.ar_id AS AbsenceReasonId,
     ar.card_uid AS cardUId,
-    DATE_FORMAT(ar.start_date, '%Y:%m:%d') AS startDate,
-    DATE_FORMAT(ar.end_date, '%Y:%m:%d') As endDate,
-    cn.ConditionalNotationID AS absenceReasonId,
-    cn.ConditionalNotationName AS absenceReasonName
+    DATE_FORMAT(ar.start_date, '%Y-%m-%d') AS startDate,
+    DATE_FORMAT(ar.end_date, '%Y-%m-%d') As endDate,
+    cn.ConditionalNotationID AS ConditionalNotationID,
+    cn.ConditionalNotationName AS ConditionalNotationName
   FROM ostiumconfigdb.absence_reason ar
   JOIN ostiumconfigdb.conditionalnotations cn 
     ON ar.ConditionalNotationID = cn.ConditionalNotationID
-  WHERE ar.card_uid = ? AND NOW() <= ar.end_date`,
+  WHERE ar.card_uid = ? AND NOW() <= ar.end_date 
+  ORDER BY ar.start_date ASC`,
       [cardUId]
     );
 
@@ -602,7 +618,7 @@ export const deleteAbsenceDays = async (req, res) => {
     } else {
       res.send({
         status: "error",
-        message: "ინფორმაცია ვერ ვერ წაშლილია",
+        message: "ინფორმაცია ვერ წაიშალა",
       });
     }
   } catch (err) {
@@ -611,6 +627,466 @@ export const deleteAbsenceDays = async (req, res) => {
       status: "error",
       message: "დაფიქსირდა შეცდომა სერვერზე",
     });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const editAbsenceDays = async (req, res) => {
+  let conn;
+  const { startDate, endDate, ConditionalNotationID } = req.body;
+
+  const { AbsenceReasonId } = req.params;
+  try {
+    conn = await createConnection();
+
+    let query = `
+  SELECT COUNT(*) AS count 
+  FROM ostiumconfigdb.absence_reason 
+  WHERE ar_id != ? 
+  AND (
+    (start_date <= ? AND end_date >= ?) 
+    OR (start_date <= ? AND end_date >= ?) 
+    OR (? <= start_date AND ? >= end_date)
+  )
+  `;
+
+    const [existingDays] = await conn.query(query, [
+      AbsenceReasonId,
+      startDate,
+      startDate,
+      endDate,
+      endDate,
+      startDate,
+      endDate,
+    ]);
+
+    if (existingDays.count > 0) {
+      res.send({
+        message: "მითითებულ თარიღით განახლება შეუძლებელია",
+        status: "error",
+      });
+      return;
+    }
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const start = new Date(startDate).setHours(0, 0, 0, 0);
+    const end = new Date(endDate).setHours(0, 0, 0, 0);
+
+    if (start >= today && end >= today && start <= end) {
+      const result = await conn.query(
+        `UPDATE ostiumconfigdb.absence_reason 
+         SET ConditionalNotationID = ?, 
+             start_date = ?, 
+             end_date = ? 
+         WHERE ar_id = ? 
+         AND end_date >= NOW() 
+         AND ? >= CURRENT_DATE() 
+         AND ? >= CURRENT_DATE()`,
+        [
+          ConditionalNotationID,
+          startDate,
+          endDate,
+          AbsenceReasonId,
+          startDate,
+          endDate,
+        ]
+      );
+
+      if (result.affectedRows > 0) {
+        res.send({
+          status: "success",
+          message: "ინფორმაცია წარმატებით განახლდა",
+        });
+      } else {
+        res.send({
+          status: "error",
+          message: "მითითებულ თარით განახლება შეუძლებელია",
+        });
+      }
+    } else {
+      res.send({
+        status: "error",
+        message: "მითითებულ თარით განახლება შეუძლებელია",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ status: "error", message: "შეცდომა სერვერზე" });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const addHoliday = async (req, res) => {
+  let conn;
+
+  const { holydayName, startDate, endDate } = req.body;
+
+  try {
+    conn = await createConnection();
+
+    let query = `SELECT COUNT(*) AS count 
+       FROM ostiumconfigdb.holydays 
+       WHERE 
+        (
+           (holydayDate <= ? AND holydayEndDate >= ?) 
+           OR (holydayDate <= ? AND holydayEndDate >= ?) 
+           OR (? <= holydayDate AND ? >= holydayEndDate)
+      ) `;
+
+    const [existingDays] = await conn.query(query, [
+      startDate,
+      startDate,
+      endDate,
+      endDate,
+      startDate,
+      endDate,
+    ]);
+
+    if (existingDays.count > 0) {
+      res.send({
+        message: "დღესასწაულები ამ თარიღში უკვე დარეგისტრირებულია",
+        status: "error",
+      });
+      return;
+    }
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const start = new Date(startDate).setHours(0, 0, 0, 0);
+    const end = new Date(endDate).setHours(0, 0, 0, 0);
+
+    if (start >= today && end >= today && start <= end) {
+      const result = await conn.query(
+        `INSERT INTO ostiumconfigdb.holydays (holydayName, holydayDate, holydayEndDate) 
+         VALUES (?, ?, ?)`,
+        [holydayName, startDate, endDate]
+      );
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით განახლდა",
+        holidayId: Number(result.insertId),
+      });
+    } else {
+      res.send({
+        status: "error",
+        message: "ინფორმაცია ვერ განახლდა",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const getHolidays = async (req, res) => {
+  let conn;
+
+  try {
+    conn = await createConnection();
+
+    const holidays = await conn.query(
+      `SELECT holyday_id as holidayId, holydayName, 
+      DATE_FORMAT(holydayDate, '%Y-%m-%d') AS startDate,
+      DATE_FORMAT(holydayEndDate, '%Y-%m-%d') As endDate
+      FROM ostiumconfigdb.holydays
+      ORDER BY holydayDate ASC`
+    );
+
+    res.send(holidays);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const deleteHoliday = async (req, res) => {
+  let conn;
+  const { holidayId } = req.params;
+
+  try {
+    conn = await createConnection();
+
+    const result = await conn.query(
+      `DELETE FROM ostiumconfigdb.holydays 
+       WHERE holyday_id = ? AND holydayDate > NOW()`,
+      [holidayId]
+    );
+
+    // Check if any rows were affected
+    if (result.affectedRows > 0) {
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით წაიშალა",
+      });
+    } else {
+      res.send({
+        status: "error",
+        message: "ინფორმაცია ვერ წაიშალა",
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      status: "error",
+      message: "დაფიქსირდა შეცდომა სერვერზე",
+    });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const editHoliday = async (req, res) => {
+  let conn;
+  const { holidayId } = req.params;
+  const { holydayName, startDate, endDate } = req.body;
+
+  try {
+    conn = await createConnection();
+
+    let query = `SELECT COUNT(*) AS count 
+       FROM ostiumconfigdb.holydays 
+       WHERE
+       holyday_id != ? 
+       AND
+        (
+           (holydayDate <= ? AND holydayEndDate >= ?) 
+           OR (holydayDate <= ? AND holydayEndDate >= ?) 
+           OR (? <= holydayDate AND ? >= holydayEndDate)
+      ) `;
+
+    const [existingDays] = await conn.query(query, [
+      holidayId,
+      startDate,
+      startDate,
+      endDate,
+      endDate,
+      startDate,
+      endDate,
+    ]);
+
+    if (existingDays.count > 0) {
+      res.send({
+        message: "დღესასწაულები ამ თარიღში უკვე დარეგისტრირებულია",
+        status: "error",
+      });
+      return;
+    }
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const start = new Date(startDate).setHours(0, 0, 0, 0);
+    const end = new Date(endDate).setHours(0, 0, 0, 0);
+
+    if (start >= today && end >= today && start <= end) {
+      const date = await conn.query(
+        `UPDATE ostiumconfigdb.holydays 
+         SET holydayName = ?, 
+             holydayDate = GREATEST(NOW(), ?), 
+             holydayEndDate = GREATEST(NOW(), ?) 
+         WHERE holyday_id = ? AND holydayEndDate >= NOW()`,
+        [holydayName, startDate, endDate, holidayId]
+      );
+      if (date.affectedRows > 0) {
+        res.send({
+          status: "success",
+          message: "ინფორმაცია წარმატებით განახლდა",
+        });
+      } else {
+        res.send({
+          status: "error",
+          message: "მითითებულ თარით განახლება შეუძლებელია",
+        });
+      }
+    } else {
+      res.send({
+        status: "error",
+        message: "მითითებულ თარით განახლება შეუძლებელია",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ status: "error", message: "შეცდომა სერვერზე" });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const getStructureUnit = async (req, res) => {
+  let conn;
+
+  try {
+    conn = await createConnection();
+
+    const structureUnit = await conn.query(
+      `SELECT * FROM structureunit GROUP BY StructureUnitName`
+    );
+
+    res.send(structureUnit);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const getPositions = async (req, res) => {
+  let conn;
+
+  try {
+    conn = await createConnection();
+
+    const positions = await conn.query(
+      `SELECT * FROM holderposition GROUP BY HolderPositionName`
+    );
+
+    res.send(positions);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const getPosition = async (req, res) => {
+  let conn;
+
+  const { HolderPositionID } = req.params;
+
+  try {
+    conn = await createConnection();
+
+    const [position] = await conn.query(
+      `SELECT 
+    hp.HolderPositionName AS positionName, 
+    hp.StructureUnitID AS StructureUnitID, 
+    st.StructureUnitName AS StructureUnitName
+    FROM holderposition hp
+    JOIN structureunit st ON st.StructureUnitID = hp.StructureUnitID
+    WHERE hp.HolderPositionID = ?`,
+      [HolderPositionID]
+    );
+
+    res.send(position);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const addPosition = async (req, res) => {
+  let conn;
+
+  const { positionName, StructureUnitID } = req.body;
+
+  try {
+    conn = await createConnection();
+
+    let [existingPosition] = await conn.query(
+      `SELECT HolderPositionID FROM holderposition 
+      WHERE HolderPositionName = ? AND StructureUnitID = ?`,
+      [positionName, StructureUnitID]
+    );
+
+    if (existingPosition) {
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით დაემატა",
+        HolderPositionID: Number(existingPosition.HolderPositionID),
+      });
+      return;
+    }
+
+    if (positionName) {
+      const result = await conn.query(
+        `INSERT INTO ostiumconfigdb.holderposition (HolderPositionName, StructureUnitID) 
+        VALUES (?, ?)`,
+        [positionName, StructureUnitID]
+      );
+
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით დაემატა",
+        HolderPositionID: Number(result.insertId),
+      });
+    } else {
+      res.send({
+        status: "error",
+        message: "ინფორმაცია ვერ დაემატა",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.send({
+      status: "error",
+      message: "ინფორმაცია ვერ დაემატა",
+    });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const addStructureInit = async (req, res) => {
+  let conn;
+
+  const { StructureUnitName } = req.body;
+
+  try {
+    conn = await createConnection();
+
+    const [existingUnit] = await conn.query(
+      `SELECT * FROM structureunit WHERE StructureUnitName = ?;`,
+      [StructureUnitName]
+    );
+
+    if (existingUnit) {
+      res.send({
+        status: "error",
+        message: "სტრუქტურული ერთეული უკვე არსებობს",
+      });
+    } else {
+      let result = await conn.query(
+        `INSERT INTO ostiumconfigdb.structureunit (StructureUnitName) 
+        VALUES (?)`,
+        [StructureUnitName]
+      );
+
+      res.send({
+        status: "success",
+        message: "ინფორმაცია წარმატებით დაემატააა",
+        StructureUnitID: Number(result.insertId),
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.send({
+      status: "error",
+      message: "ინფორმაცია ვერ დაემატა",
+    });
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+export const getMonths = async (req, res) => {
+  let conn;
+
+  try {
+    conn = await createConnection();
+
+    const months = await conn.query(
+      `SELECT month_id AS monthID, 
+       month_name AS monthName, 
+       DATE_FORMAT(start_date, '%Y-%m-%d') AS startDate, 
+       DATE_FORMAT(end_date, '%Y-%m-%d') AS endDate 
+       FROM ostiumconfigdb.months;`
+    );
+
+    res.send(months);
+  } catch (err) {
+    console.log(err);
   } finally {
     if (conn) conn.end();
   }

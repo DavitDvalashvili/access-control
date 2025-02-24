@@ -6,6 +6,7 @@ import {
   Accordion,
   Dropdown,
 } from "react-bootstrap";
+import { FaEdit } from "react-icons/fa";
 import { MdOutlineDateRange } from "react-icons/md";
 import { useStore } from "../App";
 import axios from "axios";
@@ -14,15 +15,18 @@ import { useState } from "react";
 import { MdDelete } from "react-icons/md";
 
 export const AddAbsenceDays = ({ holder, setMessage }) => {
-  const [absenceDays, setAbsenceDays] = useState([]);
   const [absenceReasons, setAbsenceReasons] = useState([]);
+  const [updateMode, setUpdateMode] = useState(false);
   const [absenceData, setAbsenceData] = useState({
-    absenceReasonId: "",
-    absenceReasonName: "",
+    ConditionalNotationID: "",
+    ConditionalNotationName: "",
+    AbsenceReasonId: "",
     startDate: "",
     endDate: "",
     cardUId: "",
   });
+
+  const [absenceDays, setAbsenceDays] = useState([]);
 
   const { HTTP } = useStore();
 
@@ -43,27 +47,71 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
     getAbsenceReason();
   }, []);
 
+  useEffect(() => {
+    setAbsenceData({ ...absenceData, cardUId: holder.CardUID });
+  }, [holder]);
+
+  useEffect(() => {
+    console.log(absenceDays);
+  }, [absenceDays]);
+
   const addAbsenceDate = async () => {
     await axios
       .post(`${HTTP}/addAbsenceDate`, absenceData)
       .then((res) => {
-        if (res.status == 200) {
+        if (res.data.status === "success") {
           setAbsenceDays([
             ...absenceDays,
             {
               ...absenceData,
-              arID: String(Date.now()) + Math.floor(Math.random() * 10000),
+              AbsenceReasonId: res.data.absenceReasonId,
             },
           ]);
-          setMessage(res.data);
-          setAbsenceData({
-            absenceReasonId: "",
-            absenceReasonName: "",
-            startDate: "",
-            endDate: "",
-            cardUId: "",
-          });
         }
+        setAbsenceData({
+          ...absenceData,
+          ConditionalNotationID: "",
+          ConditionalNotationName: "",
+          AbsenceReasonId: "",
+          startDate: "",
+          endDate: "",
+        });
+
+        setMessage(res.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  const editAbsenceDays = async () => {
+    await axios
+      .post(
+        `${HTTP}/editAbsenceDays/${absenceData.AbsenceReasonId}`,
+        absenceData
+      )
+      .then((res) => {
+        if (res.data.status == "success") {
+          console.log(res.data);
+          setAbsenceDays([
+            ...absenceDays.filter(
+              (day) => day.AbsenceReasonId !== absenceData.AbsenceReasonId
+            ),
+            {
+              ...absenceData,
+            },
+          ]);
+        }
+        setAbsenceData({
+          ...absenceData,
+          ConditionalNotationID: "",
+          ConditionalNotationName: "",
+          AbsenceReasonId: "",
+          startDate: "",
+          endDate: "",
+        });
+        setUpdateMode(!updateMode);
+        setMessage(res.data);
       })
       .catch((error) => {
         console.log(error);
@@ -72,14 +120,13 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
 
   const deleteAbsenceDate = async (day) => {
     await axios
-      .delete(`${HTTP}/deleteAbsenceDays/${day.arID}`)
+      .delete(`${HTTP}/deleteAbsenceDays/${day.AbsenceReasonId}`)
       .then((res) => {
         if (res.data.status == "success") {
           setAbsenceDays((days) =>
-            absenceDays.filter((d) => d.arID !== day.id)
+            absenceDays.filter((d) => d.AbsenceReasonId !== day.AbsenceReasonId)
           );
         }
-        console.log(res.data);
         setMessage(res.data);
       })
       .catch((error) => {
@@ -101,12 +148,8 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
   };
 
   useEffect(() => {
-    setAbsenceData({ ...absenceData, cardUId: holder.CardUID });
-  }, [holder, absenceDays]);
-
-  useEffect(() => {
     getAbsenceDays();
-  }, [holder, absenceDays]);
+  }, [holder]);
 
   return (
     <>
@@ -114,26 +157,51 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
         <Accordion.Item eventKey="0">
           <Accordion.Header>დასვენების და უქმე დღეები</Accordion.Header>
           <Accordion.Body className="bpg-arial-normal ">
-            <Col className="mb-2">
+            <Col style={{ fontSize: "15px" }}>
               {absenceDays.map((day) => (
-                <Col className="d-flex align-items-center gap-2 fw-normal fs-6 cursor-pointer">
-                  <MdDelete
-                    className="text-danger "
-                    onClick={() => deleteAbsenceDate(day)}
-                    style={{ cursor: "pointer" }}
-                  />
+                <Col
+                  className="d-flex align-items-center gap-3 fw-normal cursor-pointer"
+                  key={day.absenceReasonId}
+                >
+                  {" "}
+                  <div
+                    className="d-flex gap-2 justify-content-center"
+                    style={{
+                      //width: "100px",
+                      cursor: "pointer",
+                      fontSize: "16px",
+                    }}
+                  >
+                    <MdDelete
+                      className="text-danger "
+                      onClick={() => deleteAbsenceDate(day)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <FaEdit
+                      className="text-success"
+                      onClick={() => {
+                        setUpdateMode(true);
+                        console.log(day);
+                        setAbsenceData({
+                          ...day,
+                        });
+                      }}
+                    />
+                  </div>
                   <span>{day.startDate}</span>
                   <span>{day.endDate}</span>
-                  <span className="ml-4">{day.absenceReasonName}</span>
+                  <span className="ml-4">{day.ConditionalNotationName}</span>
                 </Col>
               ))}
             </Col>
             <Dropdown autoClose={false}>
               <Dropdown.Toggle
                 variant="light"
-                className="rounded-1 col-12 shadow-none"
+                className="rounded-1 col-12 shadow-none mt-3"
               >
-                დასვენების/გაცდენის მიზეზი
+                {absenceData.ConditionalNotationName
+                  ? absenceData.ConditionalNotationName
+                  : "დასვენების/გაცდენის მიზეზი"}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 {absenceReasons.map((reason, id) => {
@@ -142,7 +210,7 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
                       key={id}
                       as={Button}
                       className={`${
-                        absenceData.absenceReasonId ==
+                        absenceData.ConditionalNotationID ==
                         reason.ConditionalNotationID
                           ? "bg-primary"
                           : "bg-primary-light"
@@ -150,8 +218,9 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
                       onClick={() => {
                         setAbsenceData({
                           ...absenceData,
-                          absenceReasonId: reason.ConditionalNotationID,
-                          absenceReasonName: reason.ConditionalNotationName,
+                          ConditionalNotationID: reason.ConditionalNotationID,
+                          ConditionalNotationName:
+                            reason.ConditionalNotationName,
                         });
                       }}
                     >
@@ -205,14 +274,31 @@ export const AddAbsenceDays = ({ holder, setMessage }) => {
                 </Form.Group>
               </Col>
             </Col>
-            <Button
-              type="submit"
-              variant="dark"
-              className="rounded-0 px-5 py-2 mt-3 fs-5"
-              onClick={() => addAbsenceDate()}
-            >
-              დამატება
-            </Button>
+            <Col className="d-flex justify-content-end">
+              {updateMode ? (
+                <Button
+                  type="submit"
+                  variant="success"
+                  className="rounded-1 px-2 py-2 mt-3 fs-8"
+                  onClick={() => editAbsenceDays()}
+                >
+                  განახლება
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="success"
+                  className="rounded-1 px-2 py-2 mt-3 fs-8"
+                  onClick={() => {
+                    if (absenceData.ConditionalNotationID) {
+                      addAbsenceDate();
+                    }
+                  }}
+                >
+                  დამატება
+                </Button>
+              )}
+            </Col>
           </Accordion.Body>
         </Accordion.Item>
       </Accordion>

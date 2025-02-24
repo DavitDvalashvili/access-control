@@ -301,10 +301,14 @@ const ExportExcel = ({ reportData }) => {
 
     // Create the workbook and append the worksheet
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Merged Table");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "სამუშაო აღრიცხვის ფორმა"
+    );
 
     // Export the file
-    XLSX.writeFile(workbook, "Merged_Table.xlsx");
+    XLSX.writeFile(workbook, "სამუშაო აღრიცხვის ფორმა.xlsx");
   };
 
   return (

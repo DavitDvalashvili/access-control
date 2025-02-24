@@ -23,7 +23,7 @@ import ChangeIP from "./components/ChangeIP";
 import RealTimeEvent from "./components/RealTimeEvent";
 import ErrorLogs from "./components/ErrorLogs.js";
 import DashboardLayout from "./components/Dashboard/DashboardLayout.js";
-import TestReport from "./components/TestReport.js";
+import Report from "./components/Report.js";
 import { Settings } from "./components/Settings.js";
 
 const url = process.env.REACT_APP_LOCAL_IP;
@@ -77,7 +77,7 @@ function App() {
           <Route path="/reports" element={<Reports />}>
             <Route path=":entrance" element={<Reports />} />
           </Route>
-          <Route path="/testReport" element={<TestReport />} />
+          <Route path="/report" element={<Report />} />
           <Route path="/currentevent" element={<CurrentEvent />} />
           <Route path="/worktimeaccounting" element={<WorkTimeAccounting />} />
           <Route path="/worktimeplan" element={<WorkTimePlan />} />
