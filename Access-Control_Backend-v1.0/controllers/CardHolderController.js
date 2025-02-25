@@ -879,7 +879,26 @@ export const editHoliday = async (req, res) => {
     const start = new Date(startDate).setHours(0, 0, 0, 0);
     const end = new Date(endDate).setHours(0, 0, 0, 0);
 
-    if (start >= today && end >= today && start <= end) {
+    if (
+      holydayName &&
+      (!startDate || !endDate || (start === today && end === today))
+    ) {
+      // Only update the name if dates are unchanged or not provided
+      const updateName = await conn.query(
+        `UPDATE ostiumconfigdb.holydays 
+         SET holydayName = ? 
+         WHERE holyday_id = ?`,
+        [holydayName, holidayId]
+      );
+
+      if (updateName.affectedRows > 0) {
+        return res.send({
+          status: "success",
+          message: "დასახელება წარმატებით განახლდა",
+        });
+      }
+    } else if (start >= today && end >= today && start <= end) {
+      // Update both name and dates if valid
       const date = await conn.query(
         `UPDATE ostiumconfigdb.holydays 
          SET holydayName = ?, 
@@ -888,6 +907,7 @@ export const editHoliday = async (req, res) => {
          WHERE holyday_id = ? AND holydayEndDate >= NOW()`,
         [holydayName, startDate, endDate, holidayId]
       );
+
       if (date.affectedRows > 0) {
         res.send({
           status: "success",
@@ -896,13 +916,13 @@ export const editHoliday = async (req, res) => {
       } else {
         res.send({
           status: "error",
-          message: "მითითებულ თარით განახლება შეუძლებელია",
+          message: "მითითებულ თარიღზე განახლება შეუძლებელია",
         });
       }
     } else {
       res.send({
         status: "error",
-        message: "მითითებულ თარით განახლება შეუძლებელია",
+        message: "მითითებულ თარიღზე განახლება შეუძლებელია",
       });
     }
   } catch (err) {

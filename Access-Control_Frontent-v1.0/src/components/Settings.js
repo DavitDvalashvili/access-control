@@ -266,7 +266,7 @@ export const Settings = () => {
                         onClick={() => {
                           if (holiday.startDate == holiday.endDate) {
                             setShowEndDate(false);
-                            setHoliday({ ...holiday, endDate: "" });
+                            setHoliday({ ...holiday });
                           } else {
                             setShowEndDate(true);
                             setHoliday(holiday);
@@ -284,7 +284,7 @@ export const Settings = () => {
                     </span>
                     <span
                       className="ml-4 text-center "
-                      style={{ width: "137px" }}
+                      style={{ width: "237px" }}
                     >
                       {holiday.holydayName}
                     </span>

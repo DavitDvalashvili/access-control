@@ -86,13 +86,15 @@ export const AddPosition = ({ setMessage, setCardHolder, cardHolder }) => {
     await axios
       .post(`${HTTP}/addStructureInit`, structureUnit)
       .then((res) => {
-        setStructureUnits([
-          ...structureUnits,
-          {
-            ...structureUnit,
-            StructureUnitID: res.data.StructureUnitID,
-          },
-        ]);
+        if (res.data.status == "success") {
+          setStructureUnits([
+            ...structureUnits,
+            {
+              ...structureUnit,
+              StructureUnitID: res.data.StructureUnitID,
+            },
+          ]);
+        }
 
         setStructureUnit({
           StructureUnitName: "",

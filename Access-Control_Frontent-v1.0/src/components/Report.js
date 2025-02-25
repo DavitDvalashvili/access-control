@@ -5,12 +5,16 @@ import RangeSelector from "./Report/RangeSelector";
 import { Spinner, Dropdown, Col } from "react-bootstrap";
 import { useStore } from "../App";
 
+let years = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+
 const Report = () => {
   let [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [months, setMonths] = useState(getMonths());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [months, setMonths] = useState(getMonths(selectedYear));
   const [range, setRange] = useState(2);
   const [structureUnits, setStructureUnits] = useState([]);
+
   const [selectedUnit, setSelectedUnit] = useState({
     StructureUnitID: null,
     StructureUnitName: "",
@@ -45,7 +49,7 @@ const Report = () => {
 
   useEffect(() => {
     getReportData();
-  }, [selectedUnit.StructureUnitID, selectedMonth.monthID]);
+  }, [selectedUnit.StructureUnitID, selectedMonth]);
 
   let dayRange = Array.from({ length: 31 }, (_, i) => i + 1).slice(
     range === 1 ? 0 : range === 2 ? 10 : range === 3 ? 20 : 30,
@@ -64,6 +68,10 @@ const Report = () => {
         console.log(error);
       });
   };
+
+  useEffect(() => {
+    setMonths(getMonths(selectedYear));
+  }, [selectedYear]);
 
   const handleSelectUnit = (eventKey) => {
     setSelectedUnit({
@@ -84,6 +92,10 @@ const Report = () => {
       startDate: months.find((month) => month.monthID == eventKey)?.startDate,
       endDate: months.find((month) => month.monthID == eventKey)?.endDate,
     });
+  };
+
+  const handleYear = (eventKey) => {
+    setSelectedYear(years[eventKey]);
   };
 
   useEffect(() => {
@@ -129,6 +141,22 @@ const Report = () => {
               {months.map((month) => (
                 <Dropdown.Item eventKey={month.monthID} key={month.monthID}>
                   {month.monthName}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+          <Dropdown
+            title="წელი"
+            onSelect={handleYear}
+            style={{ width: "150px" }}
+          >
+            <Dropdown.Toggle variant="secondary" className="w-100">
+              {selectedYear ? selectedYear : "აირჩიე წელი"}
+            </Dropdown.Toggle>
+            <Dropdown.Menu className="w-100">
+              {years.map((year, index) => (
+                <Dropdown.Item eventKey={index} key={index}>
+                  {year}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
@@ -387,7 +415,7 @@ const Report = () => {
 
 export default Report;
 
-const getMonths = () => {
+const getMonths = (year) => {
   const months = [
     "იანვარი",
     "თებერვალი",
@@ -403,17 +431,14 @@ const getMonths = () => {
     "დეკემბერი",
   ];
 
-  const currentYear = new Date().getFullYear();
   const daysInMonth = (month, year) => new Date(year, month, 0).getDate();
 
   return months.map((monthName, index) => {
     const monthID = index + 1;
-    const startDate = `${currentYear}-${monthID
+    const startDate = `${year}-${monthID.toString().padStart(2, "0")}-01`;
+    const endDate = `${year}-${monthID
       .toString()
-      .padStart(2, "0")}-01`;
-    const endDate = `${currentYear}-${monthID
-      .toString()
-      .padStart(2, "0")}-${daysInMonth(monthID, currentYear)}`;
+      .padStart(2, "0")}-${daysInMonth(monthID, year)}`;
 
     return { monthID, monthName, startDate, endDate };
   });
