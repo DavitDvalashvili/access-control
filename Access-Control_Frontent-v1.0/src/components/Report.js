@@ -275,24 +275,21 @@ const Report = () => {
               </tr>
               {reportData.Holders &&
                 reportData.Holders.map((holder, index) => {
-                  let dayRange = holder.WorkingInformation.FullDays
-                    ? holder.WorkingInformation.FullDays?.slice(
-                        range === 1
-                          ? 0
-                          : range === 2
-                          ? 10
-                          : range === 3
-                          ? 20
-                          : 30,
-                        range === 1
-                          ? 10
-                          : range === 2
-                          ? 20
-                          : range === 3
-                          ? 30
-                          : 31
-                      )
-                    : [[], []];
+                  let dayRange = (() => {
+                    const daysArray = Array(10).fill("");
+                    const rangeStart =
+                      range == 1 ? 1 : range == 2 ? 11 : range == 3 ? 21 : 31;
+                    const rangeEnd = rangeStart + 9;
+
+                    holder.WorkingInformation.FullDays?.forEach((day) => {
+                      if (day.Day >= rangeStart && day.Day <= rangeEnd) {
+                        daysArray[day.Day - rangeStart] = day.WorkingHours
+                          ? `${day.WorkingHours} `
+                          : "";
+                      }
+                    });
+                    return daysArray;
+                  })();
                   return (
                     <tr key={index} className="text-center   ">
                       <td className="text-small small_size lighter-secondary py-1">
@@ -304,23 +301,14 @@ const Report = () => {
                       <td className="text-small small_size lighter-secondary py-1">
                         {holder.Position}
                       </td>
-                      {dayRange?.map((day, index) => (
+                      {dayRange?.map((hours, index) => (
                         <td
                           key={index}
                           className="text-small small_size lighter-secondary py-1"
                         >
-                          {day.WorkingHours}
+                          {hours}
                         </td>
                       ))}
-                      {[...Array(Math.abs(10 - dayRange?.length))].map(
-                        (_, index) =>
-                          dayRange?.length !== 10 ? (
-                            <td
-                              key={index}
-                              className="text-small small_size lighter-secondary py-1"
-                            ></td>
-                          ) : null
-                      )}
                       <td className="text-small small_size lighter-secondary py-1">
                         {holder.WorkingInformation.WorkingDaysSUM}
                       </td>

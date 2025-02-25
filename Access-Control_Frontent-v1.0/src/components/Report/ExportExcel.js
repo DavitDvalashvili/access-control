@@ -165,10 +165,21 @@ const ExportExcel = ({ reportData }) => {
         holder.FullName,
         holder.PersonalNumber,
         holder.Position,
-        ...fullDays.map((day) =>
-          day?.WorkingHours ? `${day.WorkingHours} ` : ""
-        ),
-        ...Array(31 - fullDays.length).fill(""),
+        // ...fullDays.map((day, index) =>
+        //   day?.WorkingHours ? `${day.WorkingHours} ` : ""
+        // ),
+        // ...Array(31 - fullDays.length).fill(""),
+        ...(() => {
+          const daysArray = Array(31).fill("");
+          fullDays.forEach((day) => {
+            if (day.Day >= 1 && day.Day <= 31) {
+              daysArray[day.Day - 1] = day.WorkingHours
+                ? `${day.WorkingHours} `
+                : "";
+            }
+          });
+          return daysArray;
+        })(),
         holder.WorkingInformation.WorkingDaysSUM,
         holder.WorkingInformation.WorkingHoursSum,
         holder.WorkingInformation.OverTime,
